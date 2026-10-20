@@ -1,0 +1,42 @@
+{
+  "fuso_horario": "America/Sao_Paulo",
+  "dias_a_frente": 0,
+  "jogos_no_historico": 10,
+  "dias_guardados_no_historico": 150,
+  "horas_cache_historico": 20,
+  "somente_ligas_da_lista": false,
+  "max_consultas_odds_por_jogo": 25,
+  "requisicoes_reservadas": 10,
+  "max_resultados_por_id": 15,
+  "ligas": [
+    { "id": 71,  "nome": "Brasil - Série A" },
+    { "id": 72,  "nome": "Brasil - Série B" },
+    { "id": 39,  "nome": "Inglaterra - Premier League" },
+    { "id": 140, "nome": "Espanha - La Liga" },
+    { "id": 135, "nome": "Itália - Serie A" },
+    { "id": 78,  "nome": "Alemanha - Bundesliga" },
+    { "id": 61,  "nome": "França - Ligue 1" },
+    { "id": 88,  "nome": "Holanda - Eredivisie" },
+    { "id": 94,  "nome": "Portugal - Primeira Liga" },
+    { "id": 128, "nome": "Argentina - Liga Profesional" },
+    { "id": 2,   "nome": "UEFA Champions League" },
+    { "id": 3,   "nome": "UEFA Europa League" },
+    { "id": 13,  "nome": "CONMEBOL Libertadores" },
+    { "id": 11,  "nome": "CONMEBOL Sudamericana" }
+  ],
+  "football_data_competicoes": {
+    "71": "BSA",
+    "13": "CLI",
+    "39": "PL",
+    "40": "ELC",
+    "2": "CL",
+    "61": "FL1",
+    "78": "BL1",
+    "135": "SA",
+    "88": "DED",
+    "94": "PPL",
+    "140": "PD",
+    "1": "WC",
+    "4": "EC"
+  }
+}

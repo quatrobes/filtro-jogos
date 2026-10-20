@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Filtro de Jogos</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --card: #ffffff; --text: #1b1f24; --muted: #667080; --line: #e3e6ea;
+    --accent: #1f7a4d; --ok: #1f9d55; --ok-bg: #e3f6ea; --bad: #c0392b; --bad-bg: #fbe7e5; --chip: #eef0f3;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #12151a; --card: #1b1f26; --text: #e7eaee; --muted: #9aa3ae; --line: #2b313a;
+      --accent: #3ccf85; --ok: #3ccf85; --ok-bg: #173a28; --bad: #ff7b6e; --bad-bg: #3d1f1c; --chip: #262c35;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  header { padding: 16px; max-width: 1200px; margin: 0 auto; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  .sub { color: var(--muted); font-size: 12px; }
+  main { max-width: 1200px; margin: 0 auto; padding: 0 16px 40px; }
+  .filtros { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px; display: grid; gap: 10px 14px; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); align-items: end; }
+  label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); }
+  label.check { flex-direction: row; align-items: center; gap: 6px; color: var(--text); font-size: 13px; }
+  input, select { font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; }
+  .resumo { margin: 14px 2px 8px; color: var(--muted); }
+  .avisos { background: var(--bad-bg); color: var(--bad); border-radius: 8px; padding: 8px 12px; margin-top: 10px; font-size: 12px; }
+  .avisos summary { cursor: pointer; }
+  table { width: 100%; border-collapse: collapse; background: var(--card); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+  th, td { padding: 8px 10px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: middle; }
+  th { font-size: 12px; color: var(--muted); font-weight: 600; cursor: pointer; user-select: none; white-space: nowrap; }
+  tr:last-child td { border-bottom: 0; }
+  .hora { font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .liga { display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 12px; }
+  .liga img { width: 16px; height: 16px; object-fit: contain; }
+  .time { display: flex; align-items: center; gap: 6px; }
+  .time img { width: 18px; height: 18px; object-fit: contain; }
+  .odd { font-weight: 700; font-variant-numeric: tabular-nums; }
+  .odd small { font-weight: 400; color: var(--muted); }
+  .hist { display: flex; gap: 3px; flex-wrap: wrap; }
+  .hist span { font-size: 11px; padding: 1px 5px; border-radius: 4px; background: var(--ok-bg); color: var(--ok); font-variant-numeric: tabular-nums; }
+  .hist span.zero { background: var(--bad-bg); color: var(--bad); font-weight: 700; }
+  .hist .falta { background: var(--chip); color: var(--muted); }
+  .vazio { text-align: center; padding: 30px; color: var(--muted); }
+  .histcell { display: grid; gap: 4px; }
+  @media (max-width: 760px) {
+    table, tbody, tr, td { display: block; width: 100%; }
+    thead { display: none; }
+    tr { border-bottom: 1px solid var(--line); padding: 6px 0; }
+    td { border: 0; padding: 4px 12px; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Filtro de Jogos</h1>
+  <div class="sub" id="info">Carregando…</div>
+</header>
+<main>
+  <section class="filtros">
+    <label>Data <select id="fData"></select></label>
+    <label>Liga <select id="fLiga"><option value="">Todas</option></select></label>
+    <label>Mercado <select id="fLinha"></select></label>
+    <label>Odd máxima <input id="fOddMax" type="number" step="0.01" min="1" value="1.05"></label>
+    <label>Odd usada no filtro
+      <select id="fCriterio">
+        <option value="media">Média das casas</option>
+        <option value="maior">Maior odd</option>
+        <option value="menor">Menor odd</option>
+      </select>
+    </label>
+    <label>Últimos X jogos <input id="fX" type="number" min="1" max="10" value="5"></label>
+    <label class="check"><input id="fCondicao" type="checkbox" checked> Nenhum 0x0 nos últimos X de cada time</label>
+    <label class="check"><input id="fExigirOdd" type="checkbox" checked> Só jogos com odd</label>
+    <label class="check"><input id="fNaoIniciados" type="checkbox" checked> Só jogos não iniciados</label>
+  </section>
+  <div id="avisos"></div>
+  <div class="resumo" id="resumo"></div>
+  <table>
+    <thead><tr>
+      <th data-ord="data">Hora</th>
+      <th data-ord="liga">Liga</th>
+      <th>Jogo</th>
+      <th data-ord="odd">Odd</th>
+      <th>Últimos X (gols marcados-sofridos)</th>
+    </tr></thead>
+    <tbody id="lista"></tbody>
+  </table>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+const CAMPOS = ["fData", "fLiga", "fLinha", "fOddMax", "fCriterio", "fX", "fCondicao", "fExigirOdd", "fNaoIniciados"];
+const NAO_INICIADO = new Set(["NS", "TBD"]);
+let dados = null;
+let ordem = { campo: "data", asc: true };
+
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const diaDe = (iso) => iso.slice(0, 10);
+const horaDe = (iso) => iso.slice(11, 16);
+
+function salvarFiltros() {
+  try {
+    const f = {};
+    for (const c of CAMPOS) f[c] = $(c).type === "checkbox" ? $(c).checked : $(c).value;
+    localStorage.setItem("filtros", JSON.stringify(f));
+  } catch {}
+}
+function restaurarFiltros() {
+  try {
+    const f = JSON.parse(localStorage.getItem("filtros") || "{}");
+    for (const c of CAMPOS) {
+      if (!(c in f) || c === "fData") continue;
+      if ($(c).type === "checkbox") $(c).checked = f[c]; else $(c).value = f[c];
+    }
+  } catch {}
+}
+
+function oddDoJogo(jogo, linha, criterio) {
+  const lista = jogo.odds[linha];
+  if (!lista || !lista.length) return null;
+  const vals = lista.map((o) => o.odd);
+  const valor = criterio === "maior" ? Math.max(...vals) : criterio === "menor" ? Math.min(...vals) : vals.reduce((a, b) => a + b, 0) / vals.length;
+  return { valor, casas: lista };
+}
+
+// Condição (a): em cada um dos últimos X jogos do time houve pelo menos 1 gol (nenhum 0x0).
+const semZeroZero = (hist, x) => hist.length >= x && hist.slice(0, x).every((h) => h.gm + h.gs > 0);
+
+function chipsHistorico(hist, x) {
+  let html = "";
+  for (let i = 0; i < x; i++) {
+    const h = hist[i];
+    if (!h) { html += `<span class="falta" title="Sem dados">–</span>`; continue; }
+    const tip = `${diaDe(h.data)} ${h.local === "C" ? "vs" : "@"} ${h.adversario} (${h.competicao})`;
+    html += `<span class="${h.gm + h.gs === 0 ? "zero" : ""}" title="${esc(tip)}">${h.gm}-${h.gs}</span>`;
+  }
+  return html;
+}
+
+function montarOpcoes() {
+  const dias = [...new Set(dados.jogos.map((j) => diaDe(j.data)))].sort();
+  $("fData").innerHTML = dias.map((d) => `<option value="${d}">${d.split("-").reverse().join("/")}</option>`).join("") || `<option value="">—</option>`;
+
+  const ligas = new Map(dados.jogos.map((j) => [j.liga.id, `${j.liga.pais} - ${j.liga.nome}`]));
+  $("fLiga").innerHTML = `<option value="">Todas</option>` +
+    [...ligas].sort((a, b) => a[1].localeCompare(b[1])).map(([id, n]) => `<option value="${id}">${esc(n)}</option>`).join("");
+
+  const linhas = new Set(["0.5"]);
+  dados.jogos.forEach((j) => Object.keys(j.odds).forEach((l) => linhas.add(l)));
+  $("fLinha").innerHTML = [...linhas].sort((a, b) => a - b).map((l) => `<option value="${l}">Over ${l} gols</option>`).join("");
+  $("fX").max = dados.jogos_no_historico;
+}
+
+function render() {
+  salvarFiltros();
+  const dia = $("fData").value, liga = $("fLiga").value, linha = $("fLinha").value;
+  const oddMax = parseFloat($("fOddMax").value) || Infinity;
+  const criterio = $("fCriterio").value;
+  const x = Math.max(1, Math.min(dados.jogos_no_historico, parseInt($("fX").value) || 1));
+
+  const linhas = [];
+  for (const j of dados.jogos) {
+    if (dia && diaDe(j.data) !== dia) continue;
+    if (liga && String(j.liga.id) !== liga) continue;
+    if ($("fNaoIniciados").checked && !NAO_INICIADO.has(j.status)) continue;
+    const odd = oddDoJogo(j, linha, criterio);
+    if (odd ? odd.valor > oddMax : $("fExigirOdd").checked) continue;
+    if ($("fCondicao").checked && !(semZeroZero(j.casa.historico, x) && semZeroZero(j.fora.historico, x))) continue;
+    linhas.push({ j, odd });
+  }
+
+  const chave = {
+    data: (r) => r.j.data,
+    liga: (r) => `${r.j.liga.pais} ${r.j.liga.nome}`,
+    odd: (r) => (r.odd ? r.odd.valor : 99),
+  }[ordem.campo];
+  linhas.sort((a, b) => {
+    const va = chave(a), vb = chave(b);
+    return (va < vb ? -1 : va > vb ? 1 : 0) * (ordem.asc ? 1 : -1);
+  });
+
+  $("resumo").textContent = `${linhas.length} jogo(s) encontrado(s)`;
+  $("lista").innerHTML = linhas.length ? linhas.map(({ j, odd }) => {
+    const casasTip = odd ? odd.casas.map((c) => `${c.casa}: ${c.odd.toFixed(2)}`).join("\n") : "";
+    return `<tr>
+      <td class="hora">${horaDe(j.data)}</td>
+      <td><div class="liga">${j.liga.bandeira ? `<img src="${esc(j.liga.bandeira)}" alt="">` : ""}${esc(j.liga.pais)} · ${esc(j.liga.nome)}</div></td>
+      <td>
+        <div class="time"><img src="${esc(j.casa.logo)}" alt="">${esc(j.casa.nome)}</div>
+        <div class="time"><img src="${esc(j.fora.logo)}" alt="">${esc(j.fora.nome)}</div>
+      </td>
+      <td class="odd" title="${esc(casasTip)}">${odd ? odd.valor.toFixed(2) + ` <small>(${odd.casas.length} casa${odd.casas.length > 1 ? "s" : ""})</small>` : "<small>sem odd</small>"}</td>
+      <td><div class="histcell">
+        <div class="hist">${chipsHistorico(j.casa.historico, x)}</div>
+        <div class="hist">${chipsHistorico(j.fora.historico, x)}</div>
+      </div></td>
+    </tr>`;
+  }).join("") : `<tr><td colspan="5" class="vazio">Nenhum jogo atende aos filtros.</td></tr>`;
+}
+
+async function iniciar() {
+  try {
+    const r = await fetch("data/jogos.json?t=" + Date.now());
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    dados = await r.json();
+  } catch (e) {
+    $("info").textContent = "Não foi possível carregar data/jogos.json. Rode \"node atualizar.js\" primeiro.";
+    return;
+  }
+  const quando = new Date(dados.gerado_em).toLocaleString("pt-BR");
+  const comOdd = dados.jogos.filter((j) => Object.keys(j.odds).length).length;
+  const proprio = dados.historico_proprio_jogos != null ? ` · histórico próprio: ${dados.historico_proprio_jogos} resultados guardados` : "";
+  $("info").textContent = `Dados atualizados em ${quando} · ${dados.jogos.length} jogos (${comOdd} com odds)${proprio}`;
+  if (dados.demo) $("avisos").innerHTML = `<div class="avisos"><b>DADOS DE EXEMPLO</b> — jogos, odds e resultados inventados, só para mostrar como a página funciona.</div>`;
+  if (dados.avisos?.length) {
+    $("avisos").innerHTML = `<details class="avisos"><summary>${dados.avisos.length} aviso(s) na última atualização</summary><ul>${dados.avisos.map((a) => `<li>${esc(a)}</li>`).join("")}</ul></details>`;
+  }
+  montarOpcoes();
+  restaurarFiltros();
+  for (const s of ["fLiga", "fLinha"]) if ($(s).selectedIndex < 0) $(s).selectedIndex = 0;
+  for (const c of CAMPOS) $(c).addEventListener("input", render);
+  document.querySelectorAll("th[data-ord]").forEach((th) => th.addEventListener("click", () => {
+    ordem = { campo: th.dataset.ord, asc: ordem.campo === th.dataset.ord ? !ordem.asc : true };
+    render();
+  }));
+  render();
+}
+iniciar();
+</script>
+</body>
+</html>

@@ -1,0 +1,44 @@
+name: Atualizar jogos
+
+# O limite diário da API-Sports (100 requisições) zera às 00:00 UTC = 21:00 em Brasília.
+# Horários abaixo em UTC:
+#   11:00 e 17:00 UTC (08:00 e 14:00 Brasília) -> atualização completa (~30 a 45 requisições cada)
+#   23:45 UTC (20:45 Brasília)                  -> só guarda resultados do dia (até ~16 requisições)
+on:
+  schedule:
+    - cron: "0 11,17 * * *"
+    - cron: "45 23 * * *"
+  workflow_dispatch: # permite rodar manualmente pela aba Actions
+
+permissions:
+  contents: write
+
+concurrency:
+  group: atualizar
+  cancel-in-progress: false
+
+jobs:
+  atualizar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Buscar dados
+        env:
+          API_FOOTBALL_KEY: ${{ secrets.API_FOOTBALL_KEY }}
+          FOOTBALL_DATA_KEY: ${{ secrets.FOOTBALL_DATA_KEY }}
+        run: |
+          if [ "${{ github.event.schedule }}" = "45 23 * * *" ]; then
+            node atualizar.js --so-resultados
+          else
+            node atualizar.js
+          fi
+      - name: Salvar dados no repositório
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet || git commit -m "Atualiza jogos $(date -u +'%Y-%m-%d %H:%M')"
+          git push
